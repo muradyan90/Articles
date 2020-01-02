@@ -1,0 +1,17 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorWhite</item>
+        <item name="colorPrimaryDark">@color/colorWhite</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+    <style name="ColdStart" parent="AppTheme">
+        <item name="android:windowBackground">@drawable/splash_bg</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
+
+
+
+</resources>

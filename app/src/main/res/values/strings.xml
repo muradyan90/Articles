@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Articles</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="api_key">1841ef16-e404-452b-bde8-0ff6d3a3e332</string>
+    <string name="loading">Loading...</string>
+    <string name="searching">Articles app searching new articles</string>
+    <string name="new_articles_found">"New article in news feed"</string>
+</resources>

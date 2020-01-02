@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/navigation"
+    app:startDestination="@id/allArticlesFragment">
+
+    <fragment
+        android:id="@+id/allArticlesFragment"
+        android:name="com.aram.articles.ui.AllArticlesFragment"
+        android:label="AllArticlesFragment"
+        tools:layout="@layout/fragment_all_articles">
+        <action
+            android:id="@+id/action_allArticlesFragment_to_articleDetailsFragment"
+            app:destination="@id/articleDetailsFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/articleDetailsFragment"
+        android:name="com.aram.articles.ui.ArticleDetailsFragment"
+        android:label="ArticleDetailsFragment"
+        tools:layout="@layout/fragment_article_details">
+        <action
+            android:id="@+id/action_articleDetailsFragment_to_allArticlesFragment"
+            app:destination="@id/allArticlesFragment"
+            app:popUpTo="@+id/allArticlesFragment" />
+        <argument
+            android:name="article"
+            app:argType="com.aram.articles.database.ArticleEntity" />
+        <argument
+            android:name="transitionName"
+            app:argType="string" />
+    </fragment>
+</navigation>

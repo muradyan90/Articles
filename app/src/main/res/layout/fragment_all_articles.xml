@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <data>
+        <variable
+            name="viewModel"
+            type="com.aram.articles.viewmodels.AllArticlesViewModel" />
+    </data>
+<FrameLayout
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.AllArticlesFragment">
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/allArticlesRv"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/colorWhite"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        app:itemsList="@{viewModel.articles}"
+        tools:listitem="@layout/item_layout" />
+
+    <ImageView
+        android:id="@+id/status_image"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal|center_vertical"
+        app:articleApiStatus="@{viewModel.status}" />
+    <LinearLayout
+        android:id="@+id/loading_view"
+        android:layout_gravity="bottom"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/colorWhite"
+        app:loadMoreStatus="@{viewModel.status}"
+        android:orientation="horizontal"
+        android:visibility="gone">
+        <ProgressBar
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="50dp"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="26sp"
+            android:textColor="@color/colorBlack"
+            android:text="@string/loading"
+            android:layout_gravity="center_vertical"/>
+
+    </LinearLayout>
+</FrameLayout>
+</layout>

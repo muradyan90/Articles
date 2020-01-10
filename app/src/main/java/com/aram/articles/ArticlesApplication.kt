@@ -35,8 +35,7 @@ class ArticlesApplication : Application() {
                 createNotificationChannel(chanel1)
                 createNotificationChannel(chanel2)
             }
-//            notificationManager.createNotificationChannel(chanel1)
-//            notificationManager.createNotificationChannel(chanel2)
         }
     }
+
 }

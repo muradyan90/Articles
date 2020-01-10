@@ -26,6 +26,27 @@ interface ArticlesDao{
     fun deleteArticle(article: ArticleEntity)
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // NOT USED
 @Dao
 interface TappedArticleDao{

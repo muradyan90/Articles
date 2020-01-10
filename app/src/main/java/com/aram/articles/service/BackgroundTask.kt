@@ -77,10 +77,7 @@ class BackgroundTask : JobService() {
     private fun searchNewArticles() {
         coroutineScope.launch {
             val lastNewArticle = repository.searchNewArticles()
-            Log.d(TAG, "last article DEFERRED null chekic araj : $lastNewArticle ")
             if (lastNewArticle != null) {
-                Log.d(TAG, "last article DEFERRED : null chi ")
-                Log.d(TAG, "last article DEFERRED : $lastNewArticle")
                 notificationManager.notify(
                     Math.random().toInt() * 10,
                     createNotification(lastNewArticle)

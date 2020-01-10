@@ -34,12 +34,9 @@ fun bindeImage(imageView: ImageView, imgUrl: String?) {
 
 @BindingAdapter("itemsList")
 fun bindRecyclerView(recyclerView: RecyclerView, data: List<ArticleEntity>?) {
-    val articlesList = data?.filter { !it.isDeleted }
 
     (recyclerView.adapter as AllArticlesAdapter).apply {
-
-            setList(articlesList ?: mutableListOf())
-        Log.d(TAG,"bind lidt size ${articlesList?.size}")
+        setList(data?.filter { !it.isDeleted } ?: mutableListOf())
     }
 }
 
@@ -53,10 +50,6 @@ fun bindStatus(statusImageView: ImageView, status: ArticlesApiStatus?) {
         ArticlesApiStatus.ERROR -> {
             statusImageView.visibility = View.VISIBLE
             statusImageView.setImageResource(R.drawable.ic_connection_error)
-        }
-        null -> {
-            statusImageView.visibility = View.VISIBLE
-            statusImageView.setImageResource(R.drawable.loading_animation)
         }
         ArticlesApiStatus.DONE -> {
             statusImageView.visibility = View.GONE

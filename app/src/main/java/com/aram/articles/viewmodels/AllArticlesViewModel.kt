@@ -59,19 +59,16 @@ class AllArticlesViewModel(
     }
 
     init {
-        //getArticlesPage(1)
         val curentPage = sharedPref.getInt(CURENT_PAGE, 0)
-        if (curentPage == 0) getNextPage()
+        if (curentPage == 0)
+            getNextPage()
     }
-
 
     fun getNextPage() {
         if (checkNetworkStatus(app)) {
             coroutineScope.launch {
                 repository.getNextPage()
-
                 repository.status.observeForever(observer)
-
             }
         } else {
             displayToast()

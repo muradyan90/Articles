@@ -43,27 +43,25 @@ class ArticlesRepository(
         coroutineScope.launch {
             val nextPage = curentPage + 1
             if (nextPage <= totalPages) {
-                val getArticlesPage = ArticlesApi.retrofitService.getArticles(nextPage)
-                try {
-                    _status.value = ArticlesApiStatus.LOADINGMORE
-                    val resultPage = getArticlesPage.await()
-                    _status.value = ArticlesApiStatus.DONE
-                    Log.d(TAG, "next pagi mejic curent - $curentPage | total - $totalPages")
-//                    savePagesInfo(
-//                        resultPage.response.currentPage,
-//                        resultPage.response.pages,
-//                        resultPage.response.total
-//                    )
-                    resultPage.run {
-                        savePagesInfo(
-                            response.currentPage,
-                            response.pages,
-                            response.total
+                ArticlesApi.retrofitService.getArticles(nextPage).let {
+                    try {
+                        if (curentPage == 0) {
+                            _status.value = ArticlesApiStatus.LOADING
+                        } else {
+                            _status.value = ArticlesApiStatus.LOADINGMORE
+                        }
+                        it.await().apply {
+                            _status.value = ArticlesApiStatus.DONE
+                            savePagesInfo(
+                                response.currentPage,
+                                response.pages,
+                                response.total
                             )
+                            saveArticlesInDatabase(response.articles)
+                        }
+                    } catch (e: Exception) {
+                        _status.value = ArticlesApiStatus.ERROR
                     }
-                    saveArticlesInDatabase(resultPage.response.articles)
-                } catch (e: Exception) {
-                    _status.value = ArticlesApiStatus.ERROR
                 }
             }
         }
@@ -99,37 +97,23 @@ class ArticlesRepository(
     suspend fun searchNewArticles(): ArticleEntity? {
         var lastNewArticle: ArticleEntity? = null
         val totalArticles = sharedPref.getInt(TOTAL_ARTICLES, -1)
-        Log.d(TAG, "search :  REPOSITORIUM   mtav search metod totalarts $totalArticles")
         if (totalArticles > -1 && checkNetworkStatus(app)) {
 
-            Log.d(TAG, "search:   totalArticles > -1")
-          coroutineScope.launch {
+            coroutineScope.launch {
                 // getting info about new articles from net
-                val getArticlesPage = ArticlesApi.retrofitService.getNewArticles(1, 1)
-                val resultPage = getArticlesPage.await()
+                val resultPage = ArticlesApi.retrofitService.getNewArticles(1, 1).await()
                 val newTotalArticles = resultPage.response.total
                 val lastPage = resultPage.response.pages
-                Log.d(TAG, "search:   coroutin lanched - $newTotalArticles")
-
                 if (newTotalArticles > totalArticles && checkNetworkStatus(app)) {
-                    Log.d(TAG, "search:   newTotalArticles > totalArticles")
                     editor.putInt(TOTAL_ARTICLES, newTotalArticles)
                     // getting last page with new articles
                     val getNewArticles = ArticlesApi.retrofitService.getNewArticles(
                         lastPage,
                         (newTotalArticles - totalArticles)
                     )
-
-                    Log.d(
-                        TAG,
-                        "pages info: lastpage - $lastPage | newTotalArticles - $newTotalArticles | totalArticles - $totalArticles  "
-                    )
-
                     val result = getNewArticles.await()
-                    Log.d(TAG, "search: response result vor pagna ekel ${result}")
                     saveArticlesInDatabase(result.response.articles)
                     lastNewArticle = result.response.articles.asArticlesEntity().last()
-
                 }
             }.join()
         }
@@ -137,9 +121,11 @@ class ArticlesRepository(
     }
 
     fun savePagesInfo(curentPage: Int, totalPages: Int, totalArticles: Int) {
-        editor.putInt(CURENT_PAGE, curentPage).apply()
-        editor.putInt(TOTAL_PAGES, totalPages).apply()
-        editor.putInt(TOTAL_ARTICLES, totalArticles).apply()
+        editor.apply {
+            putInt(CURENT_PAGE, curentPage)
+            putInt(TOTAL_PAGES, totalPages)
+            putInt(TOTAL_ARTICLES, totalArticles)
+        }.apply()
     }
 
     // BAD PRACTICE MUST BE REPLACED WITH DI

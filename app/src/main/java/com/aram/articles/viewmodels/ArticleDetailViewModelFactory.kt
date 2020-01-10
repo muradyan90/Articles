@@ -4,7 +4,6 @@ import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.aram.articles.database.ArticleEntity
-import com.aram.articles.network.Article
 import java.lang.IllegalArgumentException
 
 class ArticleDetailViewModelFactory(

@@ -49,11 +49,18 @@ class ArticlesRepository(
                     val resultPage = getArticlesPage.await()
                     _status.value = ArticlesApiStatus.DONE
                     Log.d(TAG, "next pagi mejic curent - $curentPage | total - $totalPages")
-                    savePagesInfo(
-                        resultPage.response.currentPage,
-                        resultPage.response.pages,
-                        resultPage.response.total
-                    )
+//                    savePagesInfo(
+//                        resultPage.response.currentPage,
+//                        resultPage.response.pages,
+//                        resultPage.response.total
+//                    )
+                    resultPage.run {
+                        savePagesInfo(
+                            response.currentPage,
+                            response.pages,
+                            response.total
+                            )
+                    }
                     saveArticlesInDatabase(resultPage.response.articles)
                 } catch (e: Exception) {
                     _status.value = ArticlesApiStatus.ERROR
@@ -96,7 +103,7 @@ class ArticlesRepository(
         if (totalArticles > -1 && checkNetworkStatus(app)) {
 
             Log.d(TAG, "search:   totalArticles > -1")
-            coroutineScope.launch {
+          coroutineScope.launch {
                 // getting info about new articles from net
                 val getArticlesPage = ArticlesApi.retrofitService.getNewArticles(1, 1)
                 val resultPage = getArticlesPage.await()
@@ -105,13 +112,14 @@ class ArticlesRepository(
                 Log.d(TAG, "search:   coroutin lanched - $newTotalArticles")
 
                 if (newTotalArticles > totalArticles && checkNetworkStatus(app)) {
-                    Log.d(TAG, "search:   newTotalArticles >= totalArticles")
+                    Log.d(TAG, "search:   newTotalArticles > totalArticles")
                     editor.putInt(TOTAL_ARTICLES, newTotalArticles)
                     // getting last page with new articles
                     val getNewArticles = ArticlesApi.retrofitService.getNewArticles(
                         lastPage,
                         (newTotalArticles - totalArticles)
                     )
+
                     Log.d(
                         TAG,
                         "pages info: lastpage - $lastPage | newTotalArticles - $newTotalArticles | totalArticles - $totalArticles  "

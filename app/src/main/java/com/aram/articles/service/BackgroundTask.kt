@@ -100,7 +100,8 @@ class BackgroundTask : JobService() {
         )
         val builder = NotificationCompat.Builder(this, CHANEL_ID)
             .setContentIntent(pendingIntent)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setSmallIcon(R.mipmap.ic_launcher)
         return when (newArticle) {
             null -> {

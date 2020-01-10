@@ -1,12 +1,9 @@
 package com.aram.articles.ui
 
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.core.view.ViewCompat
-import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.aram.articles.R
 import com.aram.articles.database.ArticleEntity
@@ -14,21 +11,58 @@ import com.aram.articles.databinding.ItemLayoutBinding
 import com.aram.articles.databinding.LiveblogItemLayoutBinding
 
 class AllArticlesAdapter(private val ClickListener: OnClickListener) :
-    ListAdapter<ArticleEntity, RecyclerView.ViewHolder>(DiffCallback) {
-
-    var listItemCount = 0
+    RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     val TAG = "LOG"
+    var articlesList = mutableListOf<ArticleEntity>()
+    var listItemCount = articlesList.size
+    var adapterPosition = 0
 
-    // SOMETIMES PASSING OF LIST FROM BINDING ADAPTER IS GETTING LATE
-    // AND IT CAUSES A IndexOutOfBoundsException
-    // fun bindRecyclerView() from BindingAdapters file
-    override fun getItemViewType(position: Int): Int {
-        Log.d(TAG, "RV - item type: $position | $listItemCount")
-        var article = getItem(0)
-        try {
-            article = getItem(position % listItemCount)
-        } catch (e: IndexOutOfBoundsException) {
+
+    fun setList(list: List<ArticleEntity>) {
+        articlesList.clear()
+        articlesList.addAll(list)
+        listItemCount = articlesList.size
+        notifyDataSetChanged()
+    }
+
+
+
+    // List and adapter position set up methods to notify only changed items ,
+    // but don't work properly for infinity scrolling when connection turned off.
+    // Must notify by adapter position
+
+    /*fun setingAdapterPosition(adapterPosition: Int){
+        this.adapterPosition = adapterPosition
+    }*/
+
+   /* fun setList(list: List<ArticleEntity>) {
+        if (list.size == articlesList.size && list.isNotEmpty()) {
+            for (indices in 0 until articlesList.size) {
+                if (articlesList[indices] != list[indices]) {
+                    articlesList[indices] = list[indices]
+                    notifyItemChanged(adapterPosition)
+                }
+            }
         }
+
+        if (list.size > articlesList.size) {
+            articlesList.addAll(list.subList(listItemCount, list.size))
+            notifyItemRangeInserted(listItemCount,list.size - listItemCount)
+            listItemCount = articlesList.size
+        } else if (list.size < articlesList.size) {
+            for (indices in 0 until articlesList.size) {
+                if (articlesList[indices] != list[indices]) {
+                    articlesList.removeAt(indices)
+                    listItemCount = articlesList.size
+                    notifyItemRemoved(adapterPosition)
+                    return
+                }
+            }
+        }
+    }*/
+
+    override fun getItemViewType(position: Int): Int {
+        val article = articlesList[position % listItemCount]
         return when (article.type) {
             "liveblog" -> R.layout.liveblog_item_layout
             else -> R.layout.item_layout
@@ -53,33 +87,22 @@ class AllArticlesAdapter(private val ClickListener: OnClickListener) :
     }
 
     override fun getItemCount(): Int {
-        return listItemCount * 2
+        return when (listItemCount) {
+            0 -> 0
+            else -> Int.MAX_VALUE
+        }
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-        var article = getItem(0)
-        try {
-            article = getItem(position % listItemCount)
-        } catch (e: IndexOutOfBoundsException) {
-        }
+        val article = articlesList[position % listItemCount]
         when (holder) {
             is ArticleViewHolder -> holder.bind(article)
             is LiveblogArticleViewHolder -> holder.bind(article)
         }
     }
 
-    companion object DiffCallback : DiffUtil.ItemCallback<ArticleEntity>() {
-        override fun areItemsTheSame(oldItem: ArticleEntity, newItem: ArticleEntity): Boolean {
-            return oldItem == newItem
-        }
-
-        override fun areContentsTheSame(oldItem: ArticleEntity, newItem: ArticleEntity): Boolean {
-            return oldItem.id == newItem.id
-        }
-    }
-
     fun getItemByPosition(position: Int): ArticleEntity {
-        return getItem(position)
+        return articlesList[position % listItemCount]
     }
 
     // ARTICLE HOLDER
@@ -95,12 +118,12 @@ class AllArticlesAdapter(private val ClickListener: OnClickListener) :
             //SHARED ELEMENT
             ViewCompat.setTransitionName(binding.itemViewImg, "imageView-$adapterPosition")
 
-            if (itemCount / 2 - adapterPosition == 1) {
+            if (listItemCount - adapterPosition % listItemCount == 1
+            ) {
                 if (adapterPosition == RecyclerView.NO_POSITION)
                     return
                 ClickListener.scrollListener(adapterPosition)
             }
-
             binding.root.setOnClickListener {
                 if (adapterPosition == RecyclerView.NO_POSITION)
                     return@setOnClickListener
@@ -109,7 +132,8 @@ class AllArticlesAdapter(private val ClickListener: OnClickListener) :
             binding.favoriteImgBtn.setOnClickListener {
                 if (adapterPosition == RecyclerView.NO_POSITION)
                     return@setOnClickListener
-                ClickListener.onLikeClick(article)
+               // setingAdapterPosition(adapterPosition)
+                ClickListener.onLikeClick(article,adapterPosition)
             }
         }
     }
@@ -126,7 +150,8 @@ class AllArticlesAdapter(private val ClickListener: OnClickListener) :
             //SHARED ELEMENT
             ViewCompat.setTransitionName(binding.itemViewImg, "imageView-$adapterPosition")
 
-            if (itemCount / 2 - adapterPosition == 1) {
+
+            if (listItemCount - adapterPosition % listItemCount == 1) {
                 if (adapterPosition == RecyclerView.NO_POSITION)
                     return
                 ClickListener.scrollListener(adapterPosition)
@@ -139,7 +164,8 @@ class AllArticlesAdapter(private val ClickListener: OnClickListener) :
             binding.favoriteImgBtn.setOnClickListener {
                 if (adapterPosition == RecyclerView.NO_POSITION)
                     return@setOnClickListener
-                ClickListener.onLikeClick(article)
+               // setingAdapterPosition(adapterPosition)
+                ClickListener.onLikeClick(article,adapterPosition)
             }
             binding.executePendingBindings()
         }
@@ -147,7 +173,7 @@ class AllArticlesAdapter(private val ClickListener: OnClickListener) :
 
     interface OnClickListener {
         fun onItemClick(article: ArticleEntity, imageView: ImageView)
-        fun onLikeClick(article: ArticleEntity)
+        fun onLikeClick(article: ArticleEntity,adapterPosition: Int)
         fun scrollListener(position: Int)
     }
 }

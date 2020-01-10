@@ -34,10 +34,13 @@ fun bindeImage(imageView: ImageView, imgUrl: String?) {
 
 @BindingAdapter("itemsList")
 fun bindRecyclerView(recyclerView: RecyclerView, data: List<ArticleEntity>?) {
-    val adapter = recyclerView.adapter as AllArticlesAdapter
-    adapter.submitList(data?.filter { !it.isDeleted })
-    Log.d(TAG, "submit list size:   ${data?.size} ")
+    val articlesList = data?.filter { !it.isDeleted }
 
+    (recyclerView.adapter as AllArticlesAdapter).apply {
+
+            setList(articlesList ?: mutableListOf())
+        Log.d(TAG,"bind lidt size ${articlesList?.size}")
+    }
 }
 
 @BindingAdapter("articleApiStatus")

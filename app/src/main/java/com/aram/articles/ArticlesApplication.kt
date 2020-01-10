@@ -31,9 +31,12 @@ class ArticlesApplication : Application() {
                 "ForegroundServiceChanel",
                 NotificationManager.IMPORTANCE_HIGH
             )
-            val service = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            service.createNotificationChannel(chanel1)
-            service.createNotificationChannel(chanel2)
+            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).apply {
+                createNotificationChannel(chanel1)
+                createNotificationChannel(chanel2)
+            }
+//            notificationManager.createNotificationChannel(chanel1)
+//            notificationManager.createNotificationChannel(chanel2)
         }
     }
 }

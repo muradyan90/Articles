@@ -2,7 +2,6 @@ package com.aram.articles.ui
 
 
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -31,13 +30,10 @@ import com.aram.articles.viewmodels.AllArticlesViewModelFactory
 class AllArticlesFragment : Fragment(), AllArticlesAdapter.OnClickListener {
     private lateinit var binding: FragmentAllArticlesBinding
     private lateinit var viewModel: AllArticlesViewModel
-    private lateinit var allArticlesAdapter: AllArticlesAdapter
     private lateinit var sharedImageview: ImageView
     private lateinit var layoutManager: LinearLayoutManager
     private lateinit var adapter: AllArticlesAdapter
     val TAG = "LOG"
-
-    private var listSize = 0
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -47,11 +43,9 @@ class AllArticlesFragment : Fragment(), AllArticlesAdapter.OnClickListener {
             DataBindingUtil.inflate(inflater, R.layout.fragment_all_articles, container, false)
         binding.lifecycleOwner = this
         getingViewModel()
-        getingListSize()
         configRecyclerView()
         showToastMasage()
         swipeToDeleteItem()
-        infinityScroll()
         navigateToDeteilsFragment()
         return binding.root
     }
@@ -70,7 +64,8 @@ class AllArticlesFragment : Fragment(), AllArticlesAdapter.OnClickListener {
 
     private fun configRecyclerView() {
         layoutManager = LinearLayoutManager(context)
-        binding.allArticlesRv.adapter = AllArticlesAdapter(this)
+        adapter = AllArticlesAdapter(this)
+        binding.allArticlesRv.adapter = adapter //AllArticlesAdapter(this)
         binding.allArticlesRv.layoutManager = layoutManager
     }
 
@@ -80,36 +75,6 @@ class AllArticlesFragment : Fragment(), AllArticlesAdapter.OnClickListener {
                 Toast.makeText(context, "No internet connection", Toast.LENGTH_SHORT).show()
                 viewModel.displayToastComplete()
             }
-        })
-    }
-
-    private fun infinityScroll() {
-        var firstItemVisible = 0
-        binding.allArticlesRv.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                firstItemVisible = layoutManager.findFirstVisibleItemPosition()
-                if (firstItemVisible != 0 && firstItemVisible == listSize) {
-                    recyclerView.layoutManager?.scrollToPosition(0)
-                }
-            }
-
-        })
-    }
-
-    private fun getingListSize() {
-        // GETING LIST SIZE FROM LIVE DATA
-        viewModel.articles.observe(this, Observer {
-            adapter = binding.allArticlesRv.adapter as AllArticlesAdapter
-            val items = it.filter {item-> !item.isDeleted }.size
-            if(items == 0){
-            adapter.listItemCount = 0
-            listSize = 0}else{
-                adapter.listItemCount = items
-                Log.d(TAG, "from fragment:   ${items} ")
-
-                listSize = items
-            }
-
         })
     }
 
@@ -127,8 +92,8 @@ class AllArticlesFragment : Fragment(), AllArticlesAdapter.OnClickListener {
             }
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                allArticlesAdapter = binding.allArticlesRv.adapter as AllArticlesAdapter
-                viewModel.deleteArticle(allArticlesAdapter.getItemByPosition(viewHolder.adapterPosition))
+                viewModel.deleteArticle(adapter.getItemByPosition(viewHolder.adapterPosition))
+               // adapter.setingAdapterPosition(viewHolder.adapterPosition)
             }
 
         }).attachToRecyclerView(binding.allArticlesRv)
@@ -157,7 +122,7 @@ class AllArticlesFragment : Fragment(), AllArticlesAdapter.OnClickListener {
         viewModel.displayArticleDetails(article)
     }
 
-    override fun onLikeClick(article: ArticleEntity) {
+    override fun onLikeClick(article: ArticleEntity, adapterPosition: Int) {
         viewModel.onLikeClick(article)
     }
 

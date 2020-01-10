@@ -39,6 +39,7 @@ class AllArticlesViewModel(
         app.getSharedPreferences(CURENT_PAGE, MODE_PRIVATE)
     private val repository = ArticlesRepository.getInstance(app, articlesDao)
 
+    var articles = repository.articles
 
     private var _status = MutableLiveData<ArticlesApiStatus>()
     val status: LiveData<ArticlesApiStatus>
@@ -52,13 +53,10 @@ class AllArticlesViewModel(
     val navigateToSelectedArticle: LiveData<ArticleEntity>
         get() = _navigateToSelectedArticle
 
-    var articles = repository.articles
 
     private val observer = Observer<ArticlesApiStatus> {
         _status.value = it
     }
-   private var  mediatorLiveData: MediatorLiveData<ArticlesApiStatus> = MediatorLiveData()
-
 
     init {
         //getArticlesPage(1)

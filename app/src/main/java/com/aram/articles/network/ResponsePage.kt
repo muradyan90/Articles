@@ -28,6 +28,12 @@ data class Article(
     val imageUrl: ImageUrl?
 ): Parcelable
 
+@Parcelize
+data class ImageUrl(
+    @Json(name = "thumbnail")
+    val imgUrl:String?
+): Parcelable
+
 fun List<Article>.asArticlesEntity(): List<ArticleEntity>{
     return map {
         ArticleEntity(
@@ -42,9 +48,3 @@ fun List<Article>.asArticlesEntity(): List<ArticleEntity>{
         )
     }
 }
-
-@Parcelize
-data class ImageUrl(
-    @Json(name = "thumbnail")
-    val imgUrl:String?
-): Parcelable

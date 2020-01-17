@@ -1,14 +1,18 @@
 package com.aram.articles.viewmodels
 
 import android.app.Application
+import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import android.content.SharedPreferences
 import android.net.ConnectivityManager
 import android.util.Log
+import android.view.View
 import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.getSystemService
+import androidx.core.content.res.ResourcesCompat
 import androidx.databinding.BaseObservable
 import androidx.databinding.Bindable
 import androidx.databinding.BindingAdapter
@@ -22,6 +26,7 @@ import com.aram.articles.network.ImageUrl
 import com.aram.articles.network.asArticlesEntity
 import com.aram.articles.repository.ArticlesRepository
 import com.aram.articles.service.BackgroundTask
+import com.aram.articles.ui.TAG
 import kotlinx.coroutines.*
 import kotlin.properties.Delegates
 
@@ -34,12 +39,16 @@ class AllArticlesViewModel(
 
     private var viewModelJob = Job()
     private val coroutineScope = CoroutineScope(viewModelJob + Dispatchers.Main)
-    private val CURENT_PAGE = "curent_page"
-    private val sharedPref: SharedPreferences =
-        app.getSharedPreferences(CURENT_PAGE, MODE_PRIVATE)
+
     private val repository = ArticlesRepository.getInstance(app, articlesDao)
 
     var articles = repository.articles
+
+    private var _articlesFromNet: MutableLiveData<List<ArticleEntity>> =
+        repository.getFirstPage()
+    val articlesFromNet: LiveData<List<ArticleEntity>>
+        get() = _articlesFromNet
+
 
     private var _status = MutableLiveData<ArticlesApiStatus>()
     val status: LiveData<ArticlesApiStatus>
@@ -59,16 +68,13 @@ class AllArticlesViewModel(
     }
 
     init {
-        val curentPage = sharedPref.getInt(CURENT_PAGE, 0)
-        if (curentPage == 0)
-            getNextPage()
+        repository.status.observeForever(observer)
     }
 
     fun getNextPage() {
         if (checkNetworkStatus(app)) {
             coroutineScope.launch {
                 repository.getNextPage()
-                repository.status.observeForever(observer)
             }
         } else {
             displayToast()
@@ -104,15 +110,16 @@ class AllArticlesViewModel(
         repository.status.removeObserver(observer)
         viewModelJob.cancel()
     }
+
 }
 
 enum class ArticlesApiStatus { LOADING, ERROR, DONE, LOADINGMORE }
 
 // FUNCTION TO CHECK CONNECTION
 @Suppress("DEPRECATION")
-fun checkNetworkStatus(application: Application): Boolean {
+fun checkNetworkStatus(context: Context): Boolean {
     val connectivityManager: ConnectivityManager =
-        application.getSystemService(AppCompatActivity.CONNECTIVITY_SERVICE) as ConnectivityManager
+        context.getSystemService(AppCompatActivity.CONNECTIVITY_SERVICE) as ConnectivityManager
     val networkInfo = connectivityManager.activeNetworkInfo
     return (networkInfo != null && networkInfo.isConnected)
 

@@ -78,8 +78,10 @@ class BackgroundTask : JobService() {
         coroutineScope.launch {
             val lastNewArticle = repository.searchNewArticles()
             if (lastNewArticle != null) {
+                Log.d(TAG,"article NOTI HAMAR $lastNewArticle")
                 notificationManager.notify(
                     Math.random().toInt() * 10,
+
                     createNotification(lastNewArticle)
                 )
             }
@@ -97,6 +99,7 @@ class BackgroundTask : JobService() {
         )
         val builder = NotificationCompat.Builder(this, CHANEL_ID)
             .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setSmallIcon(R.mipmap.ic_launcher)

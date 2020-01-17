@@ -19,6 +19,7 @@
         android:background="@color/colorWhite"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:itemsList="@{viewModel.articles}"
+        app:itemsListNet="@{viewModel.articlesFromNet}"
         tools:listitem="@layout/item_layout" />
 
     <ImageView

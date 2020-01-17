@@ -1,6 +1,5 @@
 package com.aram.articles.ui
 
-import android.util.Log
 import android.view.View
 import android.webkit.WebView
 import androidx.appcompat.widget.AppCompatImageButton
@@ -12,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.aram.articles.R
 import com.aram.articles.database.ArticleEntity
 import com.aram.articles.viewmodels.ArticlesApiStatus
+import com.aram.articles.viewmodels.checkNetworkStatus
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 
@@ -19,7 +19,11 @@ val TAG = "LOG"
 
 @BindingAdapter("imageUrl")
 fun bindeImage(imageView: ImageView, imgUrl: String?) {
-    imgUrl?.let {
+    if (imgUrl == null) {
+        imageView.setImageResource(R.drawable.ic_broken_image)
+        return
+    }
+    imgUrl.let {
         val imgUri = imgUrl.toUri().buildUpon().scheme("https").build()
         Glide.with(imageView.context)
             .load(imgUri)
@@ -32,11 +36,39 @@ fun bindeImage(imageView: ImageView, imgUrl: String?) {
     }
 }
 
-@BindingAdapter("itemsList")
-fun bindRecyclerView(recyclerView: RecyclerView, data: List<ArticleEntity>?) {
+@BindingAdapter("itemsList", "itemsListNet")
+fun bindRecyclerView(
+    recyclerView: RecyclerView,
+    dataDB: List<ArticleEntity>?,
+    dataNet: List<ArticleEntity>?
+) {
+    val adapter = recyclerView.adapter as AllArticlesAdapter
 
-    (recyclerView.adapter as AllArticlesAdapter).apply {
-        setList(data?.filter { !it.isDeleted } ?: mutableListOf())
+    if (checkNetworkStatus(recyclerView.context) && dataDB != null) {
+        adapter.setList(
+            dataNet?.map { articleNet ->
+                var article = articleNet
+                dataDB.forEach { articleDb ->
+                    if (articleNet.id == articleDb.id) {
+                        article = articleDb
+                    }
+                }
+                article
+            }?.filter { !it.isDeleted } ?: mutableListOf())
+    } else if (checkNetworkStatus(recyclerView.context)) {
+        adapter.setList(
+            dataNet?.map { articleNet ->
+                var article = articleNet
+                dataDB?.forEach { articleDb ->
+                    if (articleNet.id == articleDb.id) {
+                        article = articleDb
+                    }
+                }
+                article
+            }?.filter { !it.isDeleted } ?: dataDB ?: mutableListOf()
+        )
+    } else {
+        adapter.setList(dataDB?.filter { !it.isDeleted } ?: mutableListOf())
     }
 }
 
@@ -99,3 +131,10 @@ fun bindLikeButton(likeImageButton: AppCompatImageButton, isLiked: Boolean) {
     }
 }
 
+//@BindingAdapter("itemsList")
+//fun bindRecyclerView(recyclerView: RecyclerView, data: List<ArticleEntity>?) {
+//
+//    (recyclerView.adapter as AllArticlesAdapter).apply {
+//        setList(data?.filter { !it.isDeleted } ?: mutableListOf())
+//    }
+//}

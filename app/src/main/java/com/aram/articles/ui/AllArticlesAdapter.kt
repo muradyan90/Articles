@@ -12,19 +12,11 @@ import com.aram.articles.databinding.LiveblogItemLayoutBinding
 
 class AllArticlesAdapter(private val ClickListener: OnClickListener) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-    val TAG = "LOG"
+//    val TAG = "LOG"
+//    var adapterPosition = 0
+
     var articlesList = mutableListOf<ArticleEntity>()
     var listItemCount = articlesList.size
-    var adapterPosition = 0
-
-
-    fun setList(list: List<ArticleEntity>) {
-        articlesList.clear()
-        articlesList.addAll(list)
-        listItemCount = articlesList.size
-        notifyDataSetChanged()
-    }
-
 
 
     // List and adapter position set up methods to notify only changed items ,
@@ -61,13 +53,32 @@ class AllArticlesAdapter(private val ClickListener: OnClickListener) :
         }
     }*/
 
-    override fun getItemViewType(position: Int): Int {
-        val article = articlesList[position % listItemCount]
-        return when (article.type) {
-            "liveblog" -> R.layout.liveblog_item_layout
-            else -> R.layout.item_layout
-        }
+
+// Todo SERVERIC LIVEBLOG TYPOV CHI GALIS DEMOI HAMAR DRELEM VOR AMEN 5-ERORD ITEM@ URISH LAYOUT LINI
+//    override fun getItemViewType(position: Int): Int {
+//        val article = articlesList[position % listItemCount]
+//        return when (article.type) {
+//            "liveblog" -> R.layout.liveblog_item_layout
+//            else -> R.layout.item_layout
+//        }
+//    }
+
+
+
+    fun setList(list: List<ArticleEntity>) {
+        articlesList.clear()
+        articlesList.addAll(list)
+        listItemCount = articlesList.size
+        notifyDataSetChanged()
     }
+
+    // Todo SERVERIC LIVEBLOG 1000-erord ejica galis DEMOI HAMAR DRELEM VOR AMEN 5-ERORD ITEM@ URISH LAYOUT LINI
+override fun getItemViewType(position: Int): Int {
+    return when (position % 5) {
+       0 -> R.layout.liveblog_item_layout
+        else -> R.layout.item_layout
+    }
+}
 
     override fun onCreateViewHolder(
         parent: ViewGroup,
@@ -76,11 +87,11 @@ class AllArticlesAdapter(private val ClickListener: OnClickListener) :
         return when (viewType) {
             R.layout.liveblog_item_layout -> LiveblogArticleViewHolder(
                 LiveblogItemLayoutBinding.inflate(
-                    LayoutInflater.from(parent.context)
+                    LayoutInflater.from(parent.context),parent,false
                 ), ClickListener
             )
             else -> ArticleViewHolder(
-                ItemLayoutBinding.inflate(LayoutInflater.from(parent.context)),
+                ItemLayoutBinding.inflate(LayoutInflater.from(parent.context),parent,false),
                 ClickListener
             )
         }
@@ -169,6 +180,8 @@ class AllArticlesAdapter(private val ClickListener: OnClickListener) :
             }
             binding.executePendingBindings()
         }
+
+
     }
 
     interface OnClickListener {

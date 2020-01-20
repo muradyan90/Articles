@@ -19,20 +19,24 @@ import com.aram.articles.database.ArticleEntity
 import com.aram.articles.database.ArticlesDao
 import com.aram.articles.repository.ArticlesRepository
 import kotlinx.coroutines.*
+import org.koin.core.KoinComponent
+import org.koin.core.inject
 
 
-class BackgroundTask : JobService() {
+class BackgroundTask : JobService(), KoinComponent{
 
     private lateinit var allArticlesDao: ArticlesDao
     private lateinit var notificationManager: NotificationManager
     private lateinit var handler: Handler
-    private val delay = 30000L
+    private val delay = 4000L
     private val notId = 1
     private val CURENT_PAGE = "curent_page"
     private lateinit var sharedPref: SharedPreferences
     private lateinit var editor: SharedPreferences.Editor
     private val CHANEL_ID = "ChanelId"
-    private lateinit var repository: ArticlesRepository
+
+    // INJECTED BY KOIN
+    private val repository: ArticlesRepository by inject()
 
     // for debug
     val TAG = "LOG"
@@ -49,11 +53,6 @@ class BackgroundTask : JobService() {
             getSystemService(Context.POWER_SERVICE) as PowerManager
         val wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Service:Wakelock")
         wl.acquire()
-
-        repository = ArticlesRepository.getInstance(
-            application,
-            ArticleDatabase.getInstance(this).articlesDao
-        )
         Log.d(TAG, "backTask: - onCreateService")
     }
 
@@ -76,7 +75,8 @@ class BackgroundTask : JobService() {
 
     private fun searchNewArticles() {
         coroutineScope.launch {
-            val lastNewArticle = repository.searchNewArticles()
+           // val lastNewArticle = repository.searchNewArticles()
+            val lastNewArticle = repository.searchNewArticlesRx()
             if (lastNewArticle != null) {
                 Log.d(TAG,"article NOTI HAMAR $lastNewArticle")
                 notificationManager.notify(
@@ -130,6 +130,7 @@ class BackgroundTask : JobService() {
         notificationManager.cancelAll()
         Log.d(TAG, "BackTask: - onStopJob")
         serviceJob.cancel()
+        repository.compositeDisposableBackgroundTask.clear()
         return true
     }
 }

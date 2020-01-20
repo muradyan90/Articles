@@ -43,19 +43,18 @@ fun bindRecyclerView(
     dataNet: List<ArticleEntity>?
 ) {
     val adapter = recyclerView.adapter as AllArticlesAdapter
-
     if (checkNetworkStatus(recyclerView.context) && dataDB != null) {
         adapter.setList(
             dataNet?.map { articleNet ->
                 var article = articleNet
-                dataDB.forEach { articleDb ->
+                dataDB?.forEach { articleDb ->
                     if (articleNet.id == articleDb.id) {
                         article = articleDb
                     }
                 }
                 article
             }?.filter { !it.isDeleted } ?: mutableListOf())
-    } else if (checkNetworkStatus(recyclerView.context)) {
+    } else if (checkNetworkStatus(recyclerView.context )) {
         adapter.setList(
             dataNet?.map { articleNet ->
                 var article = articleNet

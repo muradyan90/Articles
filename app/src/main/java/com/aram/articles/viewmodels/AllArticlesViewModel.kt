@@ -2,50 +2,29 @@ package com.aram.articles.viewmodels
 
 import android.app.Application
 import android.content.Context
-import android.content.Context.MODE_PRIVATE
-import android.content.Intent
-import android.content.SharedPreferences
 import android.net.ConnectivityManager
-import android.util.Log
-import android.view.View
-import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
-import androidx.core.content.ContextCompat.getSystemService
-import androidx.core.content.res.ResourcesCompat
-import androidx.databinding.BaseObservable
-import androidx.databinding.Bindable
-import androidx.databinding.BindingAdapter
-import androidx.databinding.Observable
 import androidx.lifecycle.*
-import com.aram.articles.R
 import com.aram.articles.database.*
-import com.aram.articles.network.Article
-import com.aram.articles.network.ArticlesApi
-import com.aram.articles.network.ImageUrl
-import com.aram.articles.network.asArticlesEntity
 import com.aram.articles.repository.ArticlesRepository
-import com.aram.articles.service.BackgroundTask
-import com.aram.articles.ui.TAG
-import kotlinx.coroutines.*
-import kotlin.properties.Delegates
+import org.koin.core.KoinComponent
+import org.koin.core.inject
 
 
 class AllArticlesViewModel(
     val app: Application,
     val articlesDao: ArticlesDao,
     tappedArticleDao: TappedArticleDao
-) : AndroidViewModel(app) {
+) : AndroidViewModel(app), KoinComponent {
 
-    private var viewModelJob = Job()
-    private val coroutineScope = CoroutineScope(viewModelJob + Dispatchers.Main)
+    // INJECTED BY KOIN
+    val repository: ArticlesRepository by inject()
 
-    private val repository = ArticlesRepository.getInstance(app, articlesDao)
 
     var articles = repository.articles
 
     private var _articlesFromNet: MutableLiveData<List<ArticleEntity>> =
-        repository.getFirstPage()
+        repository.getFirstPageRx()
     val articlesFromNet: LiveData<List<ArticleEntity>>
         get() = _articlesFromNet
 
@@ -73,9 +52,7 @@ class AllArticlesViewModel(
 
     fun getNextPage() {
         if (checkNetworkStatus(app)) {
-            coroutineScope.launch {
-                repository.getNextPage()
-            }
+            repository.getNextPageRx()
         } else {
             displayToast()
         }
@@ -108,7 +85,7 @@ class AllArticlesViewModel(
     override fun onCleared() {
         super.onCleared()
         repository.status.removeObserver(observer)
-        viewModelJob.cancel()
+        repository.compositeDisposable.clear()
     }
 
 }

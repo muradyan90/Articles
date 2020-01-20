@@ -7,6 +7,10 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
+import org.koin.android.ext.koin.androidContext
+import org.koin.android.ext.koin.androidFileProperties
+import org.koin.android.ext.koin.androidLogger
+import org.koin.core.context.startKoin
 
 class ArticlesApplication : Application() {
 
@@ -17,6 +21,13 @@ class ArticlesApplication : Application() {
         connectivityManager =
             getSystemService(AppCompatActivity.CONNECTIVITY_SERVICE) as ConnectivityManager
         createNotificationChannel()
+
+        startKoin {
+            androidLogger()
+            androidContext(this@ArticlesApplication)
+            androidFileProperties()
+            modules(appModule)
+        }
     }
 
     fun createNotificationChannel() {

@@ -22,6 +22,7 @@ import com.aram.articles.database.ArticleEntity
 import com.aram.articles.databinding.FragmentAllArticlesBinding
 import com.aram.articles.viewmodels.AllArticlesViewModel
 import com.aram.articles.viewmodels.AllArticlesViewModelFactory
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 
 /**
@@ -29,7 +30,11 @@ import com.aram.articles.viewmodels.AllArticlesViewModelFactory
  */
 class AllArticlesFragment : Fragment(), AllArticlesAdapter.OnClickListener {
     private lateinit var binding: FragmentAllArticlesBinding
-    private lateinit var viewModel: AllArticlesViewModel
+    //private lateinit var viewModel: AllArticlesViewModel
+
+    // INJECTED BY KOIN
+    private val viewModel: AllArticlesViewModel  by viewModel()
+
     private lateinit var sharedImageview: ImageView
     private lateinit var layoutManager: LinearLayoutManager
     private lateinit var adapter: AllArticlesAdapter
@@ -51,14 +56,11 @@ class AllArticlesFragment : Fragment(), AllArticlesAdapter.OnClickListener {
     }
 
     private fun getingViewModel() {
-        val application = requireNotNull(activity).application
-        val allArticlesDao = ArticleDatabase.getInstance(application).articlesDao
-        val tappedArticleDao = ArticleDatabase.getInstance(application).tappedArticlesDao
-        val viewModelFactory =
-            AllArticlesViewModelFactory(application, allArticlesDao, tappedArticleDao)
-
-        viewModel =
-            ViewModelProviders.of(this, viewModelFactory).get(AllArticlesViewModel::class.java)
+        //val application = requireNotNull(activity).application
+        //val allArticlesDao = ArticleDatabase.getInstance(application).articlesDao
+        //val tappedArticleDao = ArticleDatabase.getInstance(application).tappedArticlesDao
+        //val viewModelFactory = AllArticlesViewModelFactory(application, allArticlesDao, tappedArticleDao)
+        //viewModel = ViewModelProviders.of(this, viewModelFactory).get(AllArticlesViewModel::class.java)
         binding.viewModel = viewModel
     }
 

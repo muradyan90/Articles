@@ -9,19 +9,25 @@ import androidx.lifecycle.MutableLiveData
 import com.aram.articles.database.ArticleEntity
 import com.aram.articles.database.ArticlesDao
 import com.aram.articles.network.Article
-import com.aram.articles.network.ArticlesApi
+import com.aram.articles.network.ArticlesApiService
+import com.aram.articles.network.ResponsePage
 import com.aram.articles.network.asArticlesEntity
 import com.aram.articles.viewmodels.ArticlesApiStatus
 import com.aram.articles.viewmodels.checkNetworkStatus
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.schedulers.Schedulers
 import kotlinx.coroutines.*
+import org.koin.core.KoinComponent
+import org.koin.core.inject
 
 class ArticlesRepository(
     private val app: Application,
     private val articlesDao: ArticlesDao
-) {
+) : KoinComponent {
     private val TAG = "LOG"
     private var repoJob = Job()
-    private val coroutineScope = CoroutineScope(repoJob + Dispatchers.Main)
+    private val coroutineScope = CoroutineScope(repoJob + Dispatchers.IO)
     private val CURENT_PAGE = "curent_page"
     private val TOTAL_PAGES = "total_page"
     private val TOTAL_ARTICLES = "total_articles"
@@ -48,122 +54,172 @@ class ArticlesRepository(
         queryParams["pageSize"] = pageSize.toString()
     }
 
+    // INJECTED BY KOIN
+    private val apiService: ArticlesApiService by inject()
 
-    fun getFirstPage(): MutableLiveData<List<ArticleEntity>> {
+    // RxJava CompositeDisposable for cancellation
+    val compositeDisposable = CompositeDisposable()
+    val compositeDisposableBackgroundTask = CompositeDisposable()
+
+    fun getFirstPageRx(): MutableLiveData<List<ArticleEntity>> {
         Log.d(TAG, "FIRST PAGE")
         if (checkNetworkStatus(app)) {
+             try {
+            _status.value = ArticlesApiStatus.LOADING
 
-            coroutineScope.launch {
+            compositeDisposable.add(
 
-                // getting info about articles from net
-                try {
-                    _status.value = ArticlesApiStatus.LOADING
-                    ArticlesApi.retrofitService.getArticles(queryParams).await().apply {
-                        savePagesInfo(response.pages, response.pages, response.total)
-                        queryParams["page"] = response.pages.toString()
-                        ArticlesApi.retrofitService.getArticles(queryParams).await().apply {
-                            saveArticlesInDatabase(response.articles)
+                apiService.getArticles(queryParams)
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribeOn(Schedulers.io())
+                    .subscribe(
+                        { responsePage: ResponsePage ->
+                            responsePage.apply {
 
-                            articlesFromNet.addAll(response.articles.asArticlesEntity())
-                            articlesFromNetLiveData.postValue(articlesFromNet)
+                                savePagesInfo(response.pages, response.pages, response.total)
+                                queryParams["page"] = response.pages.toString()
 
-                            _status.value = ArticlesApiStatus.DONE
-                        }
-                    }
+                                apiService.getArticles(queryParams)
+                                    .observeOn(AndroidSchedulers.mainThread())
+                                    .subscribeOn(Schedulers.io())
+                                    .subscribe(
+                                        { responsePage: ResponsePage ->
+
+                                            responsePage.apply {
+
+                                                saveArticlesInDatabase(response.articles)
+                                                articlesFromNet.addAll(response.articles.asArticlesEntity())
+                                                articlesFromNetLiveData.postValue(articlesFromNet)
+
+                                                _status.value = ArticlesApiStatus.DONE
+                                            }
+                                        },
+                                        { error: Throwable ->
+                                            _status.value = ArticlesApiStatus.ERROR
+                                        })
+                            }
+                        },
+                        { error: Throwable ->
+                            _status.value = ArticlesApiStatus.ERROR
+                        })
+            )
+
                 } catch (e: Exception) {
                     _status.value = ArticlesApiStatus.ERROR
                 }
-            }
         }
         return articlesFromNetLiveData
     }
 
-
-    fun getNextPage() {
+    fun getNextPageRx() {
         val curentPage = sharedPref.getInt(CURENT_PAGE, 0)
 
-        coroutineScope.launch {
-            val nextPage = curentPage - 1
-            if (nextPage >= 1) {
+        val nextPage = curentPage - 1
+        if (nextPage >= 1) {
 
-                queryParams["page"] = nextPage.toString()
-                ArticlesApi.retrofitService.getArticles(queryParams).let {
-                    try {
-                        if (curentPage == 0) {
-                            _status.value = ArticlesApiStatus.LOADING
-                        } else {
-                            _status.value = ArticlesApiStatus.LOADINGMORE
-                        }
-                        it.await().apply {
-                            _status.value = ArticlesApiStatus.DONE
-                            savePagesInfo(
-                                response.currentPage,
-                                response.pages,
-                                response.total
-                            )
-                            saveArticlesInDatabase(response.articles)
+            queryParams["page"] = nextPage.toString()
+            // ArticlesApi.retrofitService.getArticles(queryParams).let {
 
-                            articlesFromNet.addAll(response.articles.asArticlesEntity())
-                            articlesFromNetLiveData.postValue(articlesFromNet)
-                            Log.d(TAG, "${response.articles}")
-                        }
-                    } catch (e: Exception) {
-                        _status.value = ArticlesApiStatus.ERROR
-                    }
-                }
+            if (curentPage == 0) {
+                _status.value = ArticlesApiStatus.LOADING
+            } else {
+                _status.value = ArticlesApiStatus.LOADINGMORE
             }
+
+            compositeDisposable.add(
+                apiService.getArticles(queryParams)
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribeOn(Schedulers.io())
+                    .subscribe(
+                        { responsePage: ResponsePage ->
+
+                            responsePage.apply {
+
+                                savePagesInfo(
+                                    response.currentPage,
+                                    response.pages,
+                                    response.total
+                                )
+                                saveArticlesInDatabase(response.articles)
+
+                                articlesFromNet.addAll(response.articles.asArticlesEntity())
+                                articlesFromNetLiveData.postValue(articlesFromNet)
+                                Log.d(TAG, "${response.articles}")
+                                _status.value = ArticlesApiStatus.DONE
+                            }
+                        },
+                        { error: Throwable ->
+                            _status.value = ArticlesApiStatus.ERROR
+                        })
+            )
         }
     }
 
-    suspend fun saveArticlesInDatabase(articlesFromNet: List<Article>) {
-        withContext(Dispatchers.IO) {
+    fun saveArticlesInDatabase(articlesFromNet: List<Article>) {
+        coroutineScope.launch {
             articlesFromNet.asArticlesEntity().forEach { articlesDao.insertArticle(it) }
         }
     }
 
     fun saveLikedState(article: ArticleEntity) {
         coroutineScope.launch {
-            withContext(Dispatchers.IO) {
-                val oldArticle = articlesDao.getArticle(article.id)
-                val newArticle = oldArticle.copy(isLiked = !oldArticle.isLiked)
-                articlesDao.updateArticle(newArticle)
-            }
+            val oldArticle = articlesDao.getArticle(article.id)
+            val newArticle = oldArticle.copy(isLiked = !oldArticle.isLiked)
+            articlesDao.updateArticle(newArticle)
         }
 
     }
 
     fun deleteArticle(article: ArticleEntity) {
         coroutineScope.launch {
-            withContext(Dispatchers.IO) {
-                val oldArticle = articlesDao.getArticle(article.id)
-                val newArticle = oldArticle.copy(isDeleted = true)
-                articlesDao.updateArticle(newArticle)
-            }
+            val oldArticle = articlesDao.getArticle(article.id)
+            val newArticle = oldArticle.copy(isDeleted = true)
+            articlesDao.updateArticle(newArticle)
         }
     }
 
-    suspend fun searchNewArticles(): ArticleEntity? {
+    suspend fun searchNewArticlesRx(): ArticleEntity? {
         var lastNewArticle: ArticleEntity? = null
         val totalArticles = sharedPref.getInt(TOTAL_ARTICLES, -1)
         if (totalArticles > -1 && checkNetworkStatus(app)) {
             coroutineScope.launch {
                 try {
-                    ArticlesApi.retrofitService.getArticles(queryParams).await().apply {
-                        editor.putInt(TOTAL_ARTICLES, response.total).apply()
 
-                        if (totalArticles > response.total && checkNetworkStatus(app)) {
-                            queryParams["page"] = response.pages.toString()
-                            ArticlesApi.retrofitService.getArticles(queryParams).await().apply {
+                    compositeDisposableBackgroundTask.add(
 
-                                saveArticlesInDatabase(response.articles)
-                                lastNewArticle = response.articles.asArticlesEntity().first()
+                        // TOdo 1 CALL
+                        apiService.getArticles(queryParams)
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .subscribeOn(Schedulers.io())
+                            .subscribe { responsePage: ResponsePage ->
+                                responsePage.apply {
+                                    editor.putInt(TOTAL_ARTICLES, response.total).apply()
 
-                                Log.d(TAG, " GTAC ARTICLE@ $lastNewArticle")
-                                articlesFromNet.addAll(response.articles.asArticlesEntity())
-                                articlesFromNetLiveData.postValue(articlesFromNet)
+                                    if (totalArticles > response.total && checkNetworkStatus(app)) {
+                                        // TOdo 2 CALL
+                                        apiService.getArticles(queryParams)
+                                            .observeOn(AndroidSchedulers.mainThread())
+                                            .subscribeOn(Schedulers.io())
+                                            .subscribe { responsePage: ResponsePage ->
+
+                                                responsePage.apply {
+
+                                                    saveArticlesInDatabase(response.articles)
+                                                    lastNewArticle =
+                                                        response.articles.asArticlesEntity().first()
+
+                                                    Log.d(TAG, " GTAC ARTICLE@ $lastNewArticle")
+                                                    articlesFromNet.addAll(response.articles.asArticlesEntity())
+                                                    articlesFromNetLiveData.postValue(
+                                                        articlesFromNet
+                                                    )
+                                                }
+                                            }
+                                    }
+                                }
                             }
-                        }
-                    }
+                    )
+
                 } catch (e: Exception) {
                 }
             }.join()
@@ -179,74 +235,5 @@ class ArticlesRepository(
             putInt(TOTAL_ARTICLES, totalArticles)
         }.apply()
     }
-
-    // BAD PRACTICE MUST BE REPLACED WITH DI
-    companion object {
-        @Volatile
-        private var INSTANCE: ArticlesRepository? = null
-
-        fun getInstance(app: Application, articlesDao: ArticlesDao): ArticlesRepository {
-            synchronized(this) {
-                var instance = INSTANCE
-                if (instance == null) {
-                    instance = ArticlesRepository(app, articlesDao)
-                    INSTANCE = instance
-                }
-                return instance
-            }
-        }
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // OLD VERSION START TO DOWNLOAD FROM OLDEST ARTICLES
-//    fun getNextPage() {
-//        val curentPage = sharedPref.getInt(CURENT_PAGE, 0)
-//        val totalPages = sharedPref.getInt(TOTAL_PAGES, 1)
-//
-//      coroutineScope.launch {
-//            val nextPage = curentPage + 1
-//            if (nextPage <= totalPages) {
-//                ArticlesApi.retrofitService.getArticles(nextPage).let {
-//                    try {
-//                        if (curentPage == 0) {
-//                            _status.value = ArticlesApiStatus.LOADING
-//                        } else {
-//                            _status.value = ArticlesApiStatus.LOADINGMORE
-//                        }
-//                        it.await().apply {
-//                            _status.value = ArticlesApiStatus.DONE
-//                            savePagesInfo(
-//                                response.currentPage,
-//                                response.pages,
-//                                response.total
-//                            )
-//                            saveArticlesInDatabase(response.articles)
-//                        }
-//                    } catch (e: Exception) {
-//                        _status.value = ArticlesApiStatus.ERROR
-//                    }
-//                }
-//            }
-//        }
-//    }
 
 }
